@@ -48,8 +48,7 @@ const client = new Client({
   }
 });
 
-// Nome do grupo alvo para teste
-const TARGET_GROUP_NAME = 'GRUPO DE GEOPOLÍTICA';
+// Nome do grupo alvo para teste (mantido para compatibilidade, mas não será usado como filtro)
 const TARGET_GROUP_NAME = 'teste-fofo';
 let targetGroupId = null;
 
@@ -72,7 +71,7 @@ client.on('auth_failure', (error) => {
 client.on('ready', async () => {
   console.log('Bot conectado e pronto!');
   
-  // Buscar o grupo pelo nome
+  // Buscar o grupo pelo nome (mantido para referência)
   const chats = await client.getChats();
   for (let chat of chats) {
     if (chat.isGroup && chat.name.toLowerCase().includes(TARGET_GROUP_NAME.toLowerCase())) {
@@ -82,11 +81,7 @@ client.on('ready', async () => {
     }
   }
   
-  if (targetGroupId) {
-    console.log('Monitorando mensagens no grupo:', targetGroupId);
-  } else {
-    console.log(`AVISO: Grupo "${TARGET_GROUP_NAME}" não encontrado. Verifique se o nome está correto e se o bot é membro do grupo.`);
-  }
+  console.log('Bot está pronto e processando todas as mensagens recebidas!');
 });
 
 // Função para converter imagem para sticker
@@ -132,70 +127,68 @@ function scheduleFilesCleanup(files) {
   }, 5000); // Tentar limpar 5 segundos depois
 }
 
-// Listener para mensagens recebidas
+// Listener para mensagens recebidas - MODIFICADO para processar todas as mensagens
 client.on('message', async (message) => {
-  // Verificar se é do grupo alvo
-  if (targetGroupId && message.from === targetGroupId) {
-    console.log('Mensagem recebida no grupo alvo');
+  // Processar todas as mensagens (removida a verificação do grupo alvo)
+  console.log('Mensagem recebida de:', message.from);
 
-    // Verificar se a mensagem contém mídia
-    if (message.hasMedia) {
-      console.log('Mensagem contém mídia, processando...');
+  // Verificar se a mensagem contém mídia
+  if (message.hasMedia) {
+    console.log('Mensagem contém mídia, processando...');
 
-      try {
-        // Baixar mídia
-        const media = await message.downloadMedia();
-        
-        // Verificar se é uma figurinha
-        if (media.mimetype === 'image/webp') {
-          console.log('Mídia recebida é uma figurinha');
-          // Responder com a mensagem solicitada
-          await message.reply('figura não pode.');
-          return;
-        }
-
-        // Verificar se é uma imagem
-        if (media.mimetype.startsWith('image/')) {
-          console.log('Mídia é uma imagem, convertendo para sticker...');
-
-          try {
-            // Salvar a imagem temporariamente
-            const imagePath = path.join(tempDir, `image_${Date.now()}.${media.mimetype.split('/')[1]}`);
-            fs.writeFileSync(imagePath, Buffer.from(media.data, 'base64'));
-
-            // Converter para sticker
-            const stickerPath = await convertToSticker(imagePath);
-
-            if (stickerPath) {
-              try {
-                // Criar sticker e enviar
-                const stickerData = fs.readFileSync(stickerPath);
-                const stickerMedia = new MessageMedia('image/webp', stickerData.toString('base64'));
-
-                // Enviar como sticker
-                await message.reply(stickerMedia, message.from, { sendMediaAsSticker: true });
-                console.log('Sticker enviado com sucesso!');
-                
-                // Programar limpeza dos arquivos para mais tarde
-                scheduleFilesCleanup([imagePath, stickerPath]);
-              } catch (sendError) {
-                console.error('Erro ao enviar sticker:', sendError.message);
-                message.reply('Desculpe, ocorreu um erro ao enviar a figurinha.');
-              }
-            } else {
-              message.reply('Desculpe, não consegui converter esta imagem em figurinha.');
-            }
-          } catch (conversionError) {
-            console.error('Erro ao processar imagem:', conversionError.message);
-            message.reply('Desculpe, ocorreu um erro ao processar a imagem.');
-          }
-        } else {
-          console.log('Mídia não é uma imagem ou figurinha, ignorando.');
-        }
-      } catch (mediaError) {
-        console.error('Erro ao baixar mídia:', mediaError.message);
-        // Não enviar mensagem de erro ao usuário se for erro ao baixar
+    try {
+      // Baixar mídia
+      const media = await message.downloadMedia();
+      
+      // Verificar se é uma figurinha
+      if (media.mimetype === 'image/webp') {
+        console.log('Mídia recebida é uma figurinha');
+        // Responder com a mensagem solicitada
+        await message.reply('figura não pode.');
+        return;
       }
+
+      // Verificar se é uma imagem
+      if (media.mimetype.startsWith('image/')) {
+        console.log('Mídia é uma imagem, convertendo para sticker...');
+
+        try {
+          // Salvar a imagem temporariamente
+          const imagePath = path.join(tempDir, `image_${Date.now()}.${media.mimetype.split('/')[1]}`);
+          fs.writeFileSync(imagePath, Buffer.from(media.data, 'base64'));
+
+          // Converter para sticker
+          const stickerPath = await convertToSticker(imagePath);
+
+          if (stickerPath) {
+            try {
+              // Criar sticker e enviar
+              const stickerData = fs.readFileSync(stickerPath);
+              const stickerMedia = new MessageMedia('image/webp', stickerData.toString('base64'));
+
+              // Enviar como sticker
+              await message.reply(stickerMedia, message.from, { sendMediaAsSticker: true });
+              console.log('Sticker enviado com sucesso!');
+              
+              // Programar limpeza dos arquivos para mais tarde
+              scheduleFilesCleanup([imagePath, stickerPath]);
+            } catch (sendError) {
+              console.error('Erro ao enviar sticker:', sendError.message);
+              message.reply('Desculpe, ocorreu um erro ao enviar a figurinha.');
+            }
+          } else {
+            message.reply('Desculpe, não consegui converter esta imagem em figurinha.');
+          }
+        } catch (conversionError) {
+          console.error('Erro ao processar imagem:', conversionError.message);
+          message.reply('Desculpe, ocorreu um erro ao processar a imagem.');
+        }
+      } else {
+        console.log('Mídia não é uma imagem ou figurinha, ignorando.');
+      }
+    } catch (mediaError) {
+      console.error('Erro ao baixar mídia:', mediaError.message);
+      // Não enviar mensagem de erro ao usuário se for erro ao baixar
     }
   }
 });
