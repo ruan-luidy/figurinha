@@ -50,6 +50,7 @@ const client = new Client({
 
 // Nome do grupo alvo para teste
 const TARGET_GROUP_NAME = 'GRUPO DE GEOPOLÍTICA';
+const TARGET_GROUP_NAME = 'teste-fofo';
 let targetGroupId = null;
 
 // Gerar QR Code para autenticação (só é necessário na primeira vez)
@@ -149,7 +150,7 @@ client.on('message', async (message) => {
         if (media.mimetype === 'image/webp') {
           console.log('Mídia recebida é uma figurinha');
           // Responder com a mensagem solicitada
-          await message.reply('vai toma no cu jesse');
+          await message.reply('figura não pode.');
           return;
         }
 
